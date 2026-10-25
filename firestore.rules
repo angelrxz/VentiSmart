@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// Reglas de seguridad de VentiSmart (ISO/IEC 27400: control de acceso).
+// Cada usuario autenticado solo puede leer y escribir dentro de su propio
+// arbol users/{suUid}: sus dispositivos, su estado en vivo, sus ordenes
+// y su historial. Nadie mas, ni siquiera otro usuario autenticado.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

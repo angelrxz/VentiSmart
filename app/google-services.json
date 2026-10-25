@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "838991754317",
+    "project_id": "ventismart-5c1d6",
+    "storage_bucket": "ventismart-5c1d6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:838991754317:android:30f15742db78aa4dad1804",
+        "android_client_info": {
+          "package_name": "cl.inacap.ventismart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnjD63P_m3tTOv2KhakjDaEdEf5IgEOCM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
