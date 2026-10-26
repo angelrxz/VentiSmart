@@ -13,6 +13,10 @@ android {
         applicationId = "cl.inacap.ventismart"
         minSdk = 24
         targetSdk = 35
+        // Canal de ThingSpeak (graficos historicos). La clave de escritura solo la usa el telefono puente.
+        buildConfigField("long", "TS_CHANNEL", "3550279L")
+        buildConfigField("String", "TS_WRITE_KEY", "\"9C7DJB6M4YEV82V2\"")
+        buildConfigField("String", "TS_READ_KEY", "\"8CRUGOEXTNQ5C63X\"")
         versionCode = 1
         versionName = "1.0"
     }
@@ -28,7 +32,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 

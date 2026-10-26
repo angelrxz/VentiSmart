@@ -1,5 +1,7 @@
 package cl.inacap.ventismart.ui.components
 
+import androidx.compose.ui.res.vectorResource
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Toys
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -124,7 +125,7 @@ fun SecondaryButton(
 @Composable
 fun FanBadge(spinning: Boolean, size: Int = 64, tint: Color = V.Teal) {
     Box(Modifier.size(size.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-        Icon(Icons.Filled.Toys, null, tint = if (spinning) tint else V.Faint, modifier = Modifier.size((size * 0.5).dp))
+        Icon(FanIcon, null, tint = if (spinning) tint else V.Faint, modifier = Modifier.size((size * 0.5).dp))
     }
 }
 
@@ -152,3 +153,7 @@ fun FootNote(text: String, color: Color = V.Muted) {
 
 @Composable
 fun Gap(h: Int = 12) = Spacer(Modifier.height(h.dp))
+
+/** Icono de ventilador propio (el mismo del icono de la app). */
+val FanIcon: ImageVector
+    @Composable get() = ImageVector.vectorResource(cl.inacap.ventismart.R.drawable.ic_fan)

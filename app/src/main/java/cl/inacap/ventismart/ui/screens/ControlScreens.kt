@@ -47,18 +47,19 @@ fun ControlRoute(vm: AppViewModel, onBack: () -> Unit, onAlerts: () -> Unit) {
     var lastGood by remember(dev.id) { mutableStateOf<LiveState?>(null) }
     LaunchedEffect(live) { if (live?.linkOk == true) lastGood = live }
 
+    val act = ControlActions(command = { vm.sendCommand(it) }, retry = { vm.connect(dev) }, sim = { SimPanel(vm) })
     val l = live
     when {
         gateway && link == LinkState.CONNECTING -> Connecting(dev, onBack)
-        l == null || !l.linkOk -> NoSignalScreen(vm, dev, lastGood ?: l, gateway, now, onBack)
-        l.alarm && l.mode == Mode.AUTO -> OverheatScreen(vm, dev, l, gateway, now, onBack, onAlerts)
-        else -> ControlScreen(vm, dev, l, gateway, now, onBack)
+        l == null || !l.linkOk -> NoSignalScreen(act, dev, lastGood ?: l, gateway, now, onBack)
+        l.alarm && l.mode == Mode.AUTO -> OverheatScreen(act, dev, l, gateway, now, onBack, onAlerts)
+        else -> ControlScreen(act, dev, l, gateway, now, onBack)
     }
 }
 
 // ===================== 07 Control del ventilador =====================
 @Composable
-private fun ControlScreen(vm: AppViewModel, dev: Device, l: LiveState, gateway: Boolean, now: Long, onBack: () -> Unit) {
+internal fun ControlScreen(act: ControlActions, dev: Device, l: LiveState, gateway: Boolean, now: Long, onBack: () -> Unit) {
     val off = l.mode == Mode.OFF
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).padding(bottom = 16.dp)) {
         ScreenHeader("Control del ventilador", "${dev.name} · conectado", onBack)
@@ -80,32 +81,32 @@ private fun ControlScreen(vm: AppViewModel, dev: Device, l: LiveState, gateway: 
         Gap(12)
         if (off) {
             VCard(color = V.AmberBg, border = null) {
-                Text("El automatico esta pausado", style = MaterialTheme.typography.titleMedium, color = V.Ink)
+                Text("El automático está pausado", style = MaterialTheme.typography.titleMedium, color = V.Ink)
                 Gap(4)
-                Text("Apagar manual (M=O) anula la automatizacion hasta que reactives el modo automatico, aunque la temperatura suba.",
+                Text("Apagar manual (M=O) anula la automatización hasta que reactives el modo automático, aunque la temperatura suba.",
                     style = MaterialTheme.typography.bodySmall, color = V.Muted)
             }
             Gap(12)
-            PrimaryButton("Reactivar automatico", Icons.Filled.Autorenew) { vm.sendCommand(Mode.AUTO) }
-            FootNote("Envia M=A. A ${AppViewModel.fmt(l.temp)} °C, AUTO regulara la potencia al confirmarse.")
+            PrimaryButton("Reactivar automático", Icons.Filled.Autorenew) { act.command(Mode.AUTO) }
+            FootNote("Envía M=A. A ${AppViewModel.fmt(l.temp)} °C, AUTO regulará la potencia al confirmarse.")
             Gap(10)
             SecondaryButton("Apagar manual · ya apagado", Icons.Filled.PowerSettingsNew, enabled = false) {}
         } else {
-            SecondaryButton("Reactivar automatico · ya activo", Icons.Filled.Autorenew, enabled = false) {}
+            SecondaryButton("Reactivar automático · ya activo", Icons.Filled.Autorenew, enabled = false) {}
             Gap(10)
-            PrimaryButton("Apagar manual", Icons.Filled.PowerSettingsNew) { vm.sendCommand(Mode.OFF) }
-            FootNote("Envia M=O. El ventilador se detiene y el automatico queda pausado hasta reactivarlo.")
+            PrimaryButton("Apagar manual", Icons.Filled.PowerSettingsNew) { act.command(Mode.OFF) }
+            FootNote("Envía M=O. El ventilador se detiene y el automático queda pausado hasta reactivarlo.")
         }
         Gap(14)
         RuleCard()
-        FootNote("En AUTO, \"Apagar manual\" envia M=O. No hay ajuste manual de velocidad ni horarios.")
-        SimPanel(vm)
+        FootNote("En AUTO, \"Apagar manual\" envía M=O. No hay ajuste manual de velocidad ni horarios.")
+        act.sim()
     }
 }
 
 // ===================== 08 Sobrecalentamiento =====================
 @Composable
-private fun OverheatScreen(vm: AppViewModel, dev: Device, l: LiveState, gateway: Boolean, now: Long, onBack: () -> Unit, onAlerts: () -> Unit) {
+internal fun OverheatScreen(act: ControlActions, dev: Device, l: LiveState, gateway: Boolean, now: Long, onBack: () -> Unit, onAlerts: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).padding(bottom = 16.dp)) {
         ScreenHeader("Sobrecalentamiento", "${dev.name} · conectado", onBack)
         RoleLine(gateway, l)
@@ -127,7 +128,7 @@ private fun OverheatScreen(vm: AppViewModel, dev: Device, l: LiveState, gateway:
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("AUTO · ventilando", style = MaterialTheme.typography.titleMedium, color = V.Ink)
-                    Text("Potencia maxima", style = MaterialTheme.typography.bodySmall, color = V.Muted)
+                    Text("Potencia máxima", style = MaterialTheme.typography.bodySmall, color = V.Muted)
                 }
                 Text("${l.power} %", style = MaterialTheme.typography.headlineSmall, color = V.Ink)
             }
@@ -138,23 +139,23 @@ private fun OverheatScreen(vm: AppViewModel, dev: Device, l: LiveState, gateway:
                 Text("LED rojo y buzzer activos", style = MaterialTheme.typography.bodySmall, color = V.Red)
             }
         }
-        FootNote("Desde ${Thresholds.ALARM.toInt()} °C, el automatico ordena 100 % y activa la alarma. Ventilar no garantiza bajar la temperatura.")
+        FootNote("Desde ${Thresholds.ALARM.toInt()} °C, el automático ordena 100 % y activa la alarma. Ventilar no garantiza bajar la temperatura.")
         Gap(12)
-        PrimaryButton("Apagar manual", Icons.Filled.PowerSettingsNew, color = V.Red) { vm.sendCommand(Mode.OFF) }
-        FootNote("M=O detiene el motor y anula AUTO hasta reactivarlo. La alarma termica sigue destacada mientras la lectura sea >= ${Thresholds.ALARM.toInt()} °C.", V.Red)
+        PrimaryButton("Apagar manual", Icons.Filled.PowerSettingsNew, color = V.Red) { act.command(Mode.OFF) }
+        FootNote("M=O detiene el motor y anula AUTO hasta reactivarlo. La alarma térmica sigue destacada mientras la lectura sea >= ${Thresholds.ALARM.toInt()} °C.", V.Red)
         Gap(10)
         SecondaryButton("Ver Alertas e historial", Icons.Filled.NotificationsNone, onClick = onAlerts)
-        FootNote("Prototipo domestico: no es una medicion de seguridad certificada ni un sistema de refrigeracion.")
-        SimPanel(vm)
+        FootNote("Prototipo doméstico: no es una medición de seguridad certificada ni un sistema de refrigeración.")
+        act.sim()
     }
 }
 
 // ===================== 09 Sin senal =====================
 @Composable
-private fun NoSignalScreen(vm: AppViewModel, dev: Device, last: LiveState?, gateway: Boolean, now: Long, onBack: () -> Unit) {
+internal fun NoSignalScreen(act: ControlActions, dev: Device, last: LiveState?, gateway: Boolean, now: Long, onBack: () -> Unit) {
     val hour = remember(last?.updatedAt) { last?.let { SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(it.updatedAt)) } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).padding(bottom = 16.dp)) {
-        ScreenHeader("Sin senal", "${dev.name} · desconectado", onBack)
+        ScreenHeader("Sin señal", "${dev.name} · desconectado", onBack)
         VCard(color = V.AmberBg, border = null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.BluetoothDisabled, null, tint = V.Ink, modifier = Modifier.size(20.dp))
@@ -163,8 +164,8 @@ private fun NoSignalScreen(vm: AppViewModel, dev: Device, last: LiveState?, gate
             }
             Gap(4)
             Text(
-                if (gateway) "3 s sin mensajes validos. Acercate al modulo y comprueba su alimentacion."
-                else "Ningun telefono esta compartiendo lecturas de este equipo ahora. Conectalo desde aqui o desde el telefono que esta junto al ventilador.",
+                if (gateway) "3 s sin mensajes válidos. Acércate al módulo y comprueba su alimentación."
+                else "Ningún teléfono está compartiendo lecturas de este equipo ahora. Conéctalo desde aquí o desde el teléfono que está junto al ventilador.",
                 style = MaterialTheme.typography.bodySmall, color = V.Muted,
             )
             Gap(6)
@@ -172,43 +173,43 @@ private fun NoSignalScreen(vm: AppViewModel, dev: Device, last: LiveState?, gate
         }
         Gap(12)
         VCard {
-            StatusDot("Ultima lectura · historica", V.Faint)
+            StatusDot("Última lectura · histórica", V.Faint)
             Gap(6)
             if (last != null) {
                 Text("${AppViewModel.fmt(last.temp)} °C", style = MaterialTheme.typography.headlineLarge, color = V.Faint)
                 Text("Recibida hoy a las $hour · ${ago(now, last.updatedAt)}", style = MaterialTheme.typography.bodySmall, color = V.Muted)
                 Gap(6)
                 Row {
-                    Text("Ultimo modo · ${if (last.mode == Mode.OFF) "MANUAL" else "AUTO"}", style = MaterialTheme.typography.bodySmall, color = V.Muted, modifier = Modifier.weight(1f))
-                    Text("Ultima potencia · ${last.power} %", style = MaterialTheme.typography.bodySmall, color = V.Muted)
+                    Text("Último modo · ${if (last.mode == Mode.OFF) "MANUAL" else "AUTO"}", style = MaterialTheme.typography.bodySmall, color = V.Muted, modifier = Modifier.weight(1f))
+                    Text("Última potencia · ${last.power} %", style = MaterialTheme.typography.bodySmall, color = V.Muted)
                 }
                 Gap(4)
-                Text("No representa el estado actual. Sin datos nuevos durante la desconexion.", style = MaterialTheme.typography.bodySmall, color = V.Faint)
+                Text("No representa el estado actual. Sin datos nuevos durante la desconexión.", style = MaterialTheme.typography.bodySmall, color = V.Faint)
             } else {
                 Text("-- °C", style = MaterialTheme.typography.headlineLarge, color = V.Faint)
-                Text("Aun no se ha recibido ninguna lectura de este equipo.", style = MaterialTheme.typography.bodySmall, color = V.Muted)
+                Text("Aún no se ha recibido ninguna lectura de este equipo.", style = MaterialTheme.typography.bodySmall, color = V.Muted)
             }
         }
         Gap(12)
         VCard(color = V.Mint, border = null) {
             Text("El control local sigue activo", style = MaterialTheme.typography.titleMedium, color = V.Ink)
             Gap(4)
-            Text("Ultimo modo: ${if (last?.mode == Mode.OFF) "MANUAL" else "AUTO"}. El Arduino sigue regulando sin la app. Aqui no se conocen la potencia ni la temperatura actuales.",
+            Text("Último modo: ${if (last?.mode == Mode.OFF) "MANUAL" else "AUTO"}. El Arduino sigue regulando sin la app. Aquí no se conocen la potencia ni la temperatura actuales.",
                 style = MaterialTheme.typography.bodySmall, color = V.Muted)
         }
         Gap(12)
         SecondaryButton("Apagar manual", Icons.Filled.PowerSettingsNew, enabled = false) {}
         Gap(8)
-        SecondaryButton("Reactivar automatico", Icons.Filled.Autorenew, enabled = false) {}
+        SecondaryButton("Reactivar automático", Icons.Filled.Autorenew, enabled = false) {}
         FootNote("Controles remotos deshabilitados hasta recuperar el enlace.")
         Gap(10)
-        PrimaryButton("Reintentar conexion", Icons.Filled.Bluetooth) { vm.connect(dev) }
-        SimPanel(vm)
+        PrimaryButton("Reintentar conexión", Icons.Filled.Bluetooth) { act.retry() }
+        act.sim()
     }
 }
 
 @Composable
-private fun Connecting(dev: Device, onBack: () -> Unit) {
+internal fun Connecting(dev: Device, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         ScreenHeader("Control del ventilador", "${dev.name} · conectando", onBack)
         Gap(40)
@@ -226,7 +227,7 @@ private fun RoleLine(gateway: Boolean, l: LiveState) {
         Icon(if (gateway) Icons.Filled.Bluetooth else Icons.Filled.Cloud, null, tint = V.Teal, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(6.dp))
         Text(
-            if (gateway) "Conectado desde este telefono · comparte las lecturas con tu cuenta"
+            if (gateway) "Conectado desde este teléfono · comparte las lecturas con tu cuenta"
             else "Control remoto por la nube · puente: ${l.gateway.ifBlank { "otro telefono" }}",
             style = MaterialTheme.typography.bodySmall, color = V.Teal,
         )
@@ -236,11 +237,11 @@ private fun RoleLine(gateway: Boolean, l: LiveState) {
 @Composable
 private fun RuleCard() {
     VCard {
-        Text("Regla termica · automatico", style = MaterialTheme.typography.titleMedium, color = V.Ink)
+        Text("Regla térmica · automático", style = MaterialTheme.typography.titleMedium, color = V.Ink)
         Gap(8)
         RuleRow("Menos de ${Thresholds.VENT_START.toInt()} °C", "Apagado", V.Ok)
         RuleRow("${Thresholds.VENT_START.toInt()} a menos de ${Thresholds.ALARM.toInt()} °C", "${Thresholds.PWM_MIN_PERCENT}-100 % proporcional", V.Amber)
-        RuleRow("${Thresholds.ALARM.toInt()} °C o mas", "100 % + alarma", V.Red)
+        RuleRow("${Thresholds.ALARM.toInt()} °C o más", "100 % + alarma", V.Red)
     }
 }
 
@@ -265,7 +266,7 @@ private fun SimPanel(vm: AppViewModel) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Science, null, tint = V.Amber, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Panel de simulacion", style = MaterialTheme.typography.titleMedium, color = V.Ink)
+            Text("Panel de simulación", style = MaterialTheme.typography.titleMedium, color = V.Ink)
         }
         Text("Equivale al deslizador del TMP36 en Tinkercad.", style = MaterialTheme.typography.bodySmall, color = V.Muted)
         Gap(8)
@@ -281,7 +282,7 @@ private fun SimPanel(vm: AppViewModel) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Cortar el enlace", style = MaterialTheme.typography.bodyMedium, color = V.Ink)
-                Text("Deja de enviar tramas para probar \"Sin senal\"", style = MaterialTheme.typography.bodySmall, color = V.Muted)
+                Text("Deja de enviar tramas para probar \"Sin señal\"", style = MaterialTheme.typography.bodySmall, color = V.Muted)
             }
             Switch(checked = cut, onCheckedChange = { s.signalCut.value = it },
                 colors = SwitchDefaults.colors(checkedThumbColor = androidx.compose.ui.graphics.Color.White, checkedTrackColor = V.Amber))
@@ -290,3 +291,10 @@ private fun SimPanel(vm: AppViewModel) {
         Text("Tramas rechazadas por checksum: $rejected", style = MaterialTheme.typography.bodySmall, color = V.Muted)
     }
 }
+
+/** Acciones de las pantallas de control; separadas del ViewModel para poder previsualizarlas. */
+class ControlActions(
+    val command: (Mode) -> Unit = {},
+    val retry: () -> Unit = {},
+    val sim: @Composable () -> Unit = {},
+)

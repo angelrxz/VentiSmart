@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Toys
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -73,11 +72,11 @@ fun ScanScreen(vm: AppViewModel, onBack: () -> Unit, onChosen: () -> Unit) {
             Gap(14)
             Text(if (scanning) "Buscando cerca de ti..." else "Dispositivos disponibles", style = MaterialTheme.typography.titleMedium, color = V.Ink)
             Gap(4)
-            Text("Enciende el modulo y acercate a menos de 10 m. Manten Bluetooth activado.", style = MaterialTheme.typography.bodyMedium, color = V.Muted)
+            Text("Enciende el módulo y acércate a menos de 10 m. Mantén Bluetooth activado.", style = MaterialTheme.typography.bodyMedium, color = V.Muted)
             Gap(8)
             when {
                 !hasPerm -> StatusDot("Falta permiso de Bluetooth", V.Amber)
-                !btOn -> StatusDot("Bluetooth apagado · activalo en Ajustes", V.Amber)
+                !btOn -> StatusDot("Bluetooth apagado · actívalo en Ajustes", V.Amber)
                 else -> StatusDot("Bluetooth activo · permiso concedido", V.Ok)
             }
             if (!hasPerm) {
@@ -96,7 +95,7 @@ fun ScanScreen(vm: AppViewModel, onBack: () -> Unit, onChosen: () -> Unit) {
             Gap(10)
         }
         SecondaryButton("Buscar de nuevo", Icons.Filled.Refresh) { if (vm.hasBtPermission()) vm.scan() else launcher.launch(perms) }
-        FootNote("Vincula solo modulos que reconozcas. No se necesita Wi-Fi, router ni conexion a internet para el enlace Bluetooth.")
+        FootNote("Vincula solo módulos que reconozcas. No se necesita Wi-Fi, router ni conexión a internet para el enlace Bluetooth.")
     }
 }
 
@@ -105,13 +104,13 @@ private fun CandidateCard(c: BtCandidate, onSelect: () -> Unit) {
     val sim = c.address == AppViewModel.SIM_ADDRESS
     VCard {
         Row(verticalAlignment = Alignment.Top) {
-            Icon(if (sim) Icons.Filled.Toys else Icons.Filled.Memory, null, tint = V.Teal, modifier = Modifier.size(22.dp))
+            Icon(if (sim) FanIcon else Icons.Filled.Memory, null, tint = V.Teal, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(c.name, style = MaterialTheme.typography.titleMedium, color = V.Ink)
                 Text(if (sim) "Nodo A virtual · mismo protocolo y checksum" else "HC-05 · Bluetooth serial SPP",
                     style = MaterialTheme.typography.bodySmall, color = V.Muted)
-                Text(if (sim) "Para demostrar sin hardware" else "Direccion terminada en ${c.address.takeLast(5)}${if (c.bonded) " · ya emparejado" else ""}",
+                Text(if (sim) "Para demostrar sin hardware" else "Dirección terminada en ${c.address.takeLast(5)}${if (c.bonded) " · ya emparejado" else ""}",
                     style = MaterialTheme.typography.bodySmall, color = V.Faint)
             }
         }
@@ -147,27 +146,27 @@ fun PairScreen(vm: AppViewModel, onBack: () -> Unit, onDone: () -> Unit) {
     var show by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).padding(bottom = 16.dp)) {
-        ScreenHeader("Vincular dispositivo", "Paso 2 de 3 · configura tu modulo", onBack)
+        ScreenHeader("Vincular dispositivo", "Paso 2 de 3 · configura tu módulo", onBack)
         StatusDot("${cand.name}${if (sim) "" else " · HC-05"}", V.Ok)
         Gap(14)
         Field("Nombre del dispositivo", name, { name = it }, "Ventilador dormitorio")
         Gap(12)
         Dropdown("Tipo", type, listOf("Ventilador DC PWM", "Ventilador de techo", "Extractor")) { type = it }
         Gap(12)
-        Dropdown("Ubicacion", location, listOf("Dormitorio", "Living", "Oficina", "Sala de servidores")) { location = it }
+        Dropdown("Ubicación", location, listOf("Dormitorio", "Living", "Oficina", "Sala de servidores")) { location = it }
         Gap(12)
-        Text("Metodo de conexion", style = MaterialTheme.typography.labelSmall, color = V.Muted)
+        Text("Método de conexión", style = MaterialTheme.typography.labelSmall, color = V.Muted)
         Gap(6)
-        ReadOnlyBox(if (sim) "Simulacion · protocolo SPP" else "Bluetooth · HC-05 / SPP", Icons.Filled.Lock)
+        ReadOnlyBox(if (sim) "Simulación · protocolo SPP" else "Bluetooth · HC-05 / SPP", Icons.Filled.Lock)
         Gap(14)
         if (!sim) {
             VCard {
                 Text("Emparejamiento Android", style = MaterialTheme.typography.titleMedium, color = V.Ink)
                 Gap(4)
-                Text("Configura un nombre y un PIN propios en el HC-05 antes de vincular. Introduce aqui ese PIN; Android pedira confirmar el emparejamiento.",
+                Text("Configura un nombre y un PIN propios en el HC-05 antes de vincular. Introduce aquí ese PIN; Android pedirá confirmar el emparejamiento.",
                     style = MaterialTheme.typography.bodySmall, color = V.Muted)
                 Gap(10)
-                Text("PIN propio del modulo", style = MaterialTheme.typography.labelSmall, color = V.Muted)
+                Text("PIN propio del módulo", style = MaterialTheme.typography.labelSmall, color = V.Muted)
                 Gap(6)
                 OutlinedTextField(
                     value = pin, onValueChange = { if (it.length <= 8 && it.all(Char::isDigit)) pin = it },
@@ -181,14 +180,14 @@ fun PairScreen(vm: AppViewModel, onBack: () -> Unit, onDone: () -> Unit) {
                     },
                     colors = fieldColors(),
                 )
-                FootNote("PIN oculto · se guarda cifrado solo en este telefono. No se muestra ningun valor de fabrica.")
+                FootNote("PIN oculto · se guarda cifrado solo en este teléfono. No se muestra ningún valor de fabrica.")
             }
             FootNote("Bluetooth SPP no cifrado. Vincula solo dispositivos autorizados; el PIN no implica cifrado del enlace.")
         } else {
             VCard(color = V.Mint, border = null) {
-                Text("Dispositivo de demostracion", style = MaterialTheme.typography.titleMedium, color = V.Ink)
+                Text("Dispositivo de demostración", style = MaterialTheme.typography.titleMedium, color = V.Ink)
                 Gap(4)
-                Text("Reproduce el Nodo A de la Unidad 1 con las mismas reglas (24 °C y 32 °C) y el mismo protocolo con checksum. Podras mover la temperatura desde la pantalla de control.",
+                Text("Reproduce el Nodo A de la Unidad 1 con las mismas reglas (24 °C y 32 °C) y el mismo protocolo con checksum. Podrás mover la temperatura desde la pantalla de control.",
                     style = MaterialTheme.typography.bodySmall, color = V.Muted)
             }
         }
@@ -216,20 +215,20 @@ fun PairedScreen(vm: AppViewModel, onBack: () -> Unit, onControl: () -> Unit, on
             }
         }
         Gap(12)
-        Text("Ya estan conectados", style = MaterialTheme.typography.headlineSmall, color = V.Ink,
+        Text("Ya están conectados", style = MaterialTheme.typography.headlineSmall, color = V.Ink,
             modifier = Modifier.align(Alignment.CenterHorizontally))
-        Text("Tu dormitorio tiene un nuevo aliado. Las lecturas llegaran cada segundo.",
+        Text("Tu dormitorio tiene un nuevo aliado. Las lecturas llegarán cada segundo.",
             style = MaterialTheme.typography.bodyMedium, color = V.Muted, modifier = Modifier.align(Alignment.CenterHorizontally))
         Gap(16)
         if (dev != null) {
             VCard {
                 Text(dev.name, style = MaterialTheme.typography.titleMedium, color = V.Ink)
-                StatusDot(if (live?.linkOk == true) (if (dev.simulated) "Simulacion conectada" else "Bluetooth conectado") else "Conectando...",
+                StatusDot(if (live?.linkOk == true) (if (dev.simulated) "Simulación conectada" else "Bluetooth conectado") else "Conectando...",
                     if (live?.linkOk == true) V.Ok else V.Amber)
                 Gap(8)
-                LabelValue("Ubicacion", dev.location)
+                LabelValue("Ubicación", dev.location)
                 LabelValue("Tipo", dev.type)
-                LabelValue("Modulo", if (dev.simulated) "VentiSmart_Dormitorio (simulado)" else "HC-05 · ${dev.address.takeLast(5)}")
+                LabelValue("Módulo", if (dev.simulated) "VentiSmart_Dormitorio (simulado)" else "HC-05 · ${dev.address.takeLast(5)}")
                 Gap(8)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(live?.let { "${AppViewModel.fmt(it.temp)} °C" } ?: "-- °C", style = MaterialTheme.typography.headlineSmall,
@@ -240,13 +239,13 @@ fun PairedScreen(vm: AppViewModel, onBack: () -> Unit, onControl: () -> Unit, on
         }
         Gap(12)
         VCard(color = V.Mint, border = null) {
-            Text("Control cercano, autonomia local", style = MaterialTheme.typography.titleMedium, color = V.Ink)
+            Text("Control cercano, autonomía local", style = MaterialTheme.typography.titleMedium, color = V.Ink)
             Gap(4)
-            Text("La app funciona por Bluetooth, a unos 10 m. El modo automatico sigue en el Arduino aunque pierdas el enlace.",
+            Text("La app funciona por Bluetooth, a unos 10 m. El modo automático sigue en el Arduino aunque pierdas el enlace.",
                 style = MaterialTheme.typography.bodySmall, color = V.Muted)
         }
         Gap(16)
-        PrimaryButton("Abrir Control del ventilador", Icons.Filled.Toys, onClick = onControl)
+        PrimaryButton("Abrir Control del ventilador", FanIcon, onClick = onControl)
         Gap(10)
         SecondaryButton("Volver a Inicio", Icons.Filled.Home, onClick = onHome)
     }

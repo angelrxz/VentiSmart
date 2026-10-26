@@ -3,9 +3,11 @@ package cl.inacap.ventismart.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Tune
@@ -31,11 +33,13 @@ object R {
     const val CONTROL = "control"
     const val ALERTS = "alertas"
     const val SETTINGS = "ajustes"
+    const val CLOUD = "nube"
 }
 
 private data class Tab(val route: String, val label: String, val on: ImageVector, val off: ImageVector)
 private val tabs = listOf(
     Tab(R.HOME, "Inicio", Icons.Filled.Home, Icons.Outlined.Home),
+    Tab(R.CLOUD, "Nube", Icons.Filled.Cloud, Icons.Outlined.Cloud),
     Tab(R.ALERTS, "Alertas", Icons.Filled.Notifications, Icons.Outlined.Notifications),
     Tab(R.SETTINGS, "Ajustes", Icons.Filled.Tune, Icons.Outlined.Tune),
 )
@@ -49,7 +53,7 @@ fun VentiSmartApp(vm: AppViewModel) {
     }
     val nav = rememberNavController()
     val current = nav.currentBackStackEntryAsState().value?.destination?.route
-    val activeTab = when (current) { R.ALERTS -> R.ALERTS; R.SETTINGS -> R.SETTINGS; else -> R.HOME }
+    val activeTab = when (current) { R.CLOUD -> R.CLOUD; R.ALERTS -> R.ALERTS; R.SETTINGS -> R.SETTINGS; else -> R.HOME }
 
     Scaffold(
         containerColor = V.Bg,
@@ -94,6 +98,9 @@ fun VentiSmartApp(vm: AppViewModel) {
             }
             composable(R.ALERTS) {
                 AlertsScreen(vm, onBack = { nav.goTab(R.HOME) }, onControl = { nav.navigate(R.CONTROL) })
+            }
+            composable(R.CLOUD) {
+                CloudScreen(vm, onBack = { nav.goTab(R.HOME) })
             }
             composable(R.SETTINGS) {
                 SettingsScreen(vm, onBack = { nav.goTab(R.HOME) })

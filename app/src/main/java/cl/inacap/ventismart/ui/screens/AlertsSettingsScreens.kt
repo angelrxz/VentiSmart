@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Thermostat
-import androidx.compose.material.icons.filled.Toys
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material3.*
@@ -63,11 +62,11 @@ fun AlertsScreen(vm: AppViewModel, onBack: () -> Unit, onControl: () -> Unit) {
         ScreenHeader("Alertas e historial", d?.name ?: "Sin dispositivo", onBack)
         val l = live
         when {
-            l == null -> VCard(color = V.Mint, border = null) { StatusDot("Sin lecturas todavia", V.Muted) }
+            l == null -> VCard(color = V.Mint, border = null) { StatusDot("Sin lecturas todavía", V.Muted) }
             !l.linkOk -> VCard(color = V.AmberBg, border = null) {
                 StatusDot("Enlace perdido · se conservan los eventos", V.Amber)
                 Gap(4)
-                Text("Ultimo estado: ${AppViewModel.fmt(l.temp)} °C · ${l.power} %.", style = MaterialTheme.typography.bodySmall, color = V.Muted)
+                Text("Último estado: ${AppViewModel.fmt(l.temp)} °C · ${l.power} %.", style = MaterialTheme.typography.bodySmall, color = V.Muted)
             }
             l.alarm -> VCard(color = V.RedBg, border = null) {
                 StatusDot("Alerta activa · sobrecalentamiento", V.Red)
@@ -77,7 +76,7 @@ fun AlertsScreen(vm: AppViewModel, onBack: () -> Unit, onControl: () -> Unit) {
             else -> VCard(color = V.Mint, border = null) {
                 StatusDot("Sin alertas activas · enlace estable", V.Ok)
                 Gap(4)
-                Text("Ahora: ${AppViewModel.fmt(l.temp)} °C · ${modeText(l)} · ${l.power} %. Los eventos se guardan en tu cuenta y los ve cualquier telefono con tu sesion.",
+                Text("Ahora: ${AppViewModel.fmt(l.temp)} °C · ${modeText(l)} · ${l.power} %. Los eventos se guardan en tu cuenta y los ve cualquier teléfono con tu sesión.",
                     style = MaterialTheme.typography.bodySmall, color = V.Muted)
             }
         }
@@ -85,7 +84,7 @@ fun AlertsScreen(vm: AppViewModel, onBack: () -> Unit, onControl: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Chip("Todos", filter == 0) { filter = 0 }
             Chip("Alertas", filter == 1) { filter = 1 }
-            Chip("Conexion", filter == 2) { filter = 2 }
+            Chip("Conexión", filter == 2) { filter = 2 }
         }
         Gap(12)
         Row {
@@ -95,7 +94,7 @@ fun AlertsScreen(vm: AppViewModel, onBack: () -> Unit, onControl: () -> Unit) {
         }
         Gap(8)
         if (shown.isEmpty()) {
-            VCard { Text("Todavia no hay eventos en esta categoria.", style = MaterialTheme.typography.bodyMedium, color = V.Muted) }
+            VCard { Text("Todavía no hay eventos en esta categoría.", style = MaterialTheme.typography.bodyMedium, color = V.Muted) }
         } else {
             VCard {
                 shown.forEachIndexed { i, e ->
@@ -109,7 +108,7 @@ fun AlertsScreen(vm: AppViewModel, onBack: () -> Unit, onControl: () -> Unit) {
             Text("Abrir Control del ventilador", style = MaterialTheme.typography.labelLarge, color = V.Teal, modifier = Modifier.weight(1f))
             Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = V.Teal)
         }
-        FootNote("Registro de eventos recibidos; no se inventan lecturas durante la desconexion.")
+        FootNote("Registro de eventos recibidos; no se inventan lecturas durante la desconexión.")
     }
 }
 
@@ -129,13 +128,14 @@ private fun EventRow(e: EventItem) {
     }
 }
 
+@Composable
 private fun eventIcon(t: EventType): Pair<ImageVector, Color> = when (t) {
     EventType.LINK_UP -> Icons.Filled.Bluetooth to V.Teal
     EventType.LINK_LOST -> Icons.Filled.BluetoothDisabled to V.Amber
     EventType.OVERHEAT -> Icons.Filled.Warning to V.Red
     EventType.MANUAL_OFF -> Icons.Filled.PowerSettingsNew to V.Muted
     EventType.AUTO_ON -> Icons.Filled.Autorenew to V.Teal
-    EventType.VENTILATING -> Icons.Filled.Toys to V.Teal
+    EventType.VENTILATING -> FanIcon to V.Teal
     EventType.AUTO_OFF_COLD -> Icons.Filled.Thermostat to V.Teal
     EventType.REMOTE_CMD -> Icons.Filled.Cloud to V.Teal
 }
@@ -168,7 +168,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
     val initials = name.split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).padding(bottom = 16.dp)) {
-        ScreenHeader("Configuracion", "Preferencias de la app", onBack)
+        ScreenHeader("Configuración", "Preferencias de la app", onBack)
         VCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(44.dp).clip(CircleShape).background(V.Mint), contentAlignment = Alignment.Center) {
@@ -194,19 +194,19 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             StatusDot("Umbrales · definidos en el firmware", V.Amber)
             Gap(8)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LockedValue("Inicio de ventilacion", "${Thresholds.VENT_START.toInt()} °C", Modifier.weight(1f))
-                LockedValue("Alarma termica", "${Thresholds.ALARM.toInt()} °C", Modifier.weight(1f))
+                LockedValue("Inicio de ventilación", "${Thresholds.VENT_START.toInt()} °C", Modifier.weight(1f))
+                LockedValue("Alarma térmica", "${Thresholds.ALARM.toInt()} °C", Modifier.weight(1f))
             }
             Gap(8)
-            Text("Se muestran como referencia. Hoy se ajustan en el Arduino; cambiarlos desde la app requiere un comando de umbral que el protocolo aun no tiene.",
+            Text("Se muestran como referencia. Hoy se ajustan en el Arduino; cambiarlos desde la app requiere un comando de umbral que el protocolo aún no tiene.",
                 style = MaterialTheme.typography.bodySmall, color = V.Amber)
         }
         Gap(12)
         VCard {
-            Text("Notificaciones del telefono", style = MaterialTheme.typography.titleMedium, color = V.Ink)
+            Text("Notificaciones del teléfono", style = MaterialTheme.typography.titleMedium, color = V.Ink)
             Gap(4)
             ToggleRow("Sobrecalentamiento", overheat) { overheat = it; vm.prefs.notifyOverheat = it; if (it) askNotifications() }
-            ToggleRow("Perdida de senal", signal) { signal = it; vm.prefs.notifySignal = it; if (it) askNotifications() }
+            ToggleRow("Pérdida de señal", signal) { signal = it; vm.prefs.notifySignal = it; if (it) askNotifications() }
             Text("Activas con permiso de Android. No sustituyen el LED rojo ni el buzzer del dispositivo.", style = MaterialTheme.typography.bodySmall, color = V.Muted)
         }
         Gap(12)
@@ -219,8 +219,8 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             Gap(6)
             SecurityItem("Acceso con cuenta propia (Firebase Authentication)")
             SecurityItem("Cada cuenta solo ve sus equipos (reglas de Firestore)")
-            SecurityItem("Trafico a la nube solo por HTTPS/TLS")
-            SecurityItem("PIN del modulo cifrado con AES-256 en el telefono")
+            SecurityItem("Tráfico a la nube solo por HTTPS/TLS")
+            SecurityItem("PIN del módulo cifrado con AES-256 en el teléfono")
             SecurityItem("Tramas verificadas con checksum XOR; se descartan las corruptas")
             SecurityItem("Permisos de Bluetooth y notificaciones pedidos solo al usarlos")
         }
@@ -241,7 +241,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         }
         Gap(16)
-        SecondaryButton("Cerrar sesion", Icons.AutoMirrored.Filled.Logout, color = V.Red) { vm.signOut() }
+        SecondaryButton("Cerrar sesión", Icons.AutoMirrored.Filled.Logout, color = V.Red) { vm.signOut() }
         FootNote("Tramas verificadas con checksum XOR: se descartan las corruptas. El enlace Bluetooth SPP no es cifrado.")
     }
 
@@ -259,7 +259,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { confirmDelete = null },
             title = { Text("Desvincular dispositivo") },
-            text = { Text("Se borrara de tu cuenta junto con su historial. El Arduino sigue funcionando por su cuenta.") },
+            text = { Text("Se borrará de tu cuenta junto con su historial. El Arduino sigue funcionando por su cuenta.") },
             confirmButton = { TextButton(onClick = { vm.deleteDevice(id); confirmDelete = null }) { Text("Desvincular", color = V.Red) } },
             dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Cancelar") } },
         )

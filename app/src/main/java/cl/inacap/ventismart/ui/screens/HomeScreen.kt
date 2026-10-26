@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Toys
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,10 +42,23 @@ fun HomeScreen(vm: AppViewModel, onAdd: () -> Unit, onControl: () -> Unit) {
     val gatewayFor by vm.gatewayFor.collectAsState()
     val localLink by vm.localLink.collectAsState()
     val now by vm.now.collectAsState()
+    HomeContent(
+        userName = user?.displayName, devices = devices, selected = selected, live = live,
+        gateway = gateway, localActive = gatewayFor != null, localLink = localLink, now = now,
+        onAdd = onAdd, onControl = onControl, onConnect = { vm.connect(it) }, onSelect = { vm.select(it) },
+    )
+}
 
-    val first = (user?.displayName ?: "").split(" ").firstOrNull()?.takeIf { it.isNotBlank() } ?: "de nuevo"
+/** Contenido de Inicio sin dependencias de Firebase (permite la vista previa). */
+@Composable
+fun HomeContent(
+    userName: String?, devices: List<Device>, selected: Device?, live: LiveState?,
+    gateway: Boolean, localActive: Boolean, localLink: LinkState, now: Long,
+    onAdd: () -> Unit, onControl: () -> Unit, onConnect: (Device) -> Unit, onSelect: (String) -> Unit,
+) {
+    val first = (userName ?: "").split(" ").firstOrNull()?.takeIf { it.isNotBlank() } ?: "de nuevo"
     val connLabel = when {
-        gatewayFor != null -> if (selected?.simulated == true) "simulacion local" else "conexion Bluetooth local"
+        localActive -> if (selected?.simulated == true) "simulación local" else "conexión Bluetooth local"
         live != null -> "en vivo desde la nube"
         else -> "sin enlace"
     }
@@ -54,7 +66,7 @@ fun HomeScreen(vm: AppViewModel, onAdd: () -> Unit, onControl: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp).padding(top = 12.dp, bottom = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(V.Mint), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Toys, null, tint = V.Teal, modifier = Modifier.size(22.dp))
+                Icon(FanIcon, null, tint = V.Teal, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column {
@@ -71,7 +83,7 @@ fun HomeScreen(vm: AppViewModel, onAdd: () -> Unit, onControl: () -> Unit) {
         if (d == null) {
             EmptyState(onAdd)
         } else {
-            HeroCard(d, live, gateway, localLink, now, onControl, onConnect = { vm.connect(d) })
+            HeroCard(d, live, gateway, localLink, now, onControl, onConnect = { onConnect(d) })
             Gap(20)
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Mis dispositivos", style = MaterialTheme.typography.titleMedium, color = V.Ink, modifier = Modifier.weight(1f))
@@ -79,13 +91,13 @@ fun HomeScreen(vm: AppViewModel, onAdd: () -> Unit, onControl: () -> Unit) {
             }
             Gap(10)
             devices.forEach { dev ->
-                DeviceRow(dev, if (dev.id == d.id) live else null) { vm.select(dev.id); onControl() }
+                DeviceRow(dev, if (dev.id == d.id) live else null) { onSelect(dev.id); onControl() }
                 Gap(10)
             }
             SecondaryButton("Agregar dispositivo", Icons.Filled.Add, onClick = onAdd)
             FootNote(
-                if (gateway) "Bluetooth cercano · este telefono comparte las lecturas con tu cuenta. El control automatico se ejecuta en el dispositivo."
-                else "Este telefono ve el ventilador en vivo a traves de la nube. El control automatico se ejecuta en el dispositivo.",
+                if (gateway) "Bluetooth cercano · este teléfono comparte las lecturas con tu cuenta. El control automático se ejecuta en el dispositivo."
+                else "Este teléfono ve el ventilador en vivo a través de la nube. El control automático se ejecuta en el dispositivo.",
             )
         }
     }
@@ -107,8 +119,8 @@ private fun HeroCard(
         Gap(4)
         when {
             gateway && link == LinkState.CONNECTING -> StatusDot("Conectando...", V.Amber)
-            live == null -> StatusDot("Sin lecturas todavia", V.Muted)
-            !live.linkOk -> StatusDot("Sin senal · ultima lectura guardada", V.Amber)
+            live == null -> StatusDot("Sin lecturas todavía", V.Muted)
+            !live.linkOk -> StatusDot("Sin señal · última lectura guardada", V.Amber)
             else -> StatusDot("Conectado · ${modeText(live)}", if (live.alarm) V.Red else V.Ok)
         }
         Gap(10)
@@ -125,7 +137,7 @@ private fun HeroCard(
             style = MaterialTheme.typography.bodySmall, color = V.Muted)
         Gap(10)
         Row {
-            Text(if (live?.mode == Mode.OFF) "Potencia · apagado manual" else "Potencia automatica",
+            Text(if (live?.mode == Mode.OFF) "Potencia · apagado manual" else "Potencia automática",
                 style = MaterialTheme.typography.bodyMedium, color = V.Muted, modifier = Modifier.weight(1f))
             Text("${live?.power ?: 0} %", style = MaterialTheme.typography.titleMedium, color = V.Teal)
         }
@@ -134,7 +146,7 @@ private fun HeroCard(
         Gap(14)
         if (!gateway && (live == null || !live.linkOk)) {
             PrimaryButton(
-                if (d.simulated) "Iniciar simulacion en este telefono" else "Conectar desde este telefono",
+                if (d.simulated) "Iniciar simulación en este teléfono" else "Conectar desde este teléfono",
                 Icons.Filled.Bluetooth, onClick = onConnect,
             )
             Gap(8)
@@ -167,10 +179,10 @@ private fun DeviceRow(d: Device, live: LiveState?, onClick: () -> Unit) {
 @Composable
 private fun EmptyState(onAdd: () -> Unit) {
     VCard(color = V.Mint, border = null) {
-        Text("Aun no tienes dispositivos", style = MaterialTheme.typography.titleMedium, color = V.Ink)
+        Text("Aún no tienes dispositivos", style = MaterialTheme.typography.titleMedium, color = V.Ink)
         Gap(6)
         Text(
-            "Vincula tu ventilador por Bluetooth o agrega el dispositivo de demostracion para probar la app sin hardware.",
+            "Vincula tu ventilador por Bluetooth o agrega el dispositivo de demostración para probar la app sin hardware.",
             style = MaterialTheme.typography.bodyMedium, color = V.Muted,
         )
         Gap(14)
@@ -179,10 +191,10 @@ private fun EmptyState(onAdd: () -> Unit) {
 }
 
 fun modeText(l: LiveState) = when {
-    l.mode == Mode.OFF -> "MANUAL apagado"
-    l.alarm -> "AUTO Alarma"
-    l.power > 0 -> "AUTO Ventilando"
-    else -> "AUTO Normal"
+    l.mode == Mode.OFF -> "MANUAL · apagado"
+    l.alarm -> "AUTO · alarma"
+    l.power > 0 -> "AUTO · ventilando"
+    else -> "AUTO · normal"
 }
 
 fun ago(now: Long, at: Long): String {
@@ -198,7 +210,7 @@ fun ago(now: Long, at: Long): String {
 
 private fun greeting(): String {
     val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    return when { h < 12 -> "Buenos dias"; h < 20 -> "Buenas tardes"; else -> "Buenas noches" }
+    return when { h < 12 -> "Buenos días"; h < 20 -> "Buenas tardes"; else -> "Buenas noches" }
 }
 
 private fun today(): String =

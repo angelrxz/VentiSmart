@@ -10,7 +10,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Toys
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -32,6 +31,15 @@ import cl.inacap.ventismart.vm.AppViewModel
 fun LoginScreen(vm: AppViewModel) {
     val busy by vm.authBusy.collectAsState()
     val error by vm.authError.collectAsState()
+    LoginContent(busy, error, { e, p -> vm.signIn(e, p) }, { n, e, p -> vm.signUp(n, e, p) }, { vm.clearAuthError() })
+}
+
+/** Pantalla de inicio de sesion sin dependencias de Firebase (permite la vista previa). */
+@Composable
+fun LoginContent(
+    busy: Boolean, error: String?,
+    onSignIn: (String, String) -> Unit, onSignUp: (String, String, String) -> Unit, onClear: () -> Unit,
+) {
     var register by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -46,7 +54,7 @@ fun LoginScreen(vm: AppViewModel) {
             .padding(horizontal = 22.dp).padding(top = 48.dp, bottom = 24.dp),
     ) {
         Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(V.Mint), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Toys, null, tint = V.Teal, modifier = Modifier.size(30.dp))
+            Icon(FanIcon, null, tint = V.Teal, modifier = Modifier.size(30.dp))
         }
         Gap(16)
         Text("VentiSmart", style = MaterialTheme.typography.headlineSmall, color = V.Ink)
@@ -55,22 +63,22 @@ fun LoginScreen(vm: AppViewModel) {
 
         // Selector Iniciar sesion / Crear cuenta
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(V.Mint).padding(4.dp)) {
-            Tab("Iniciar sesion", !register, Modifier.weight(1f)) { register = false; vm.clearAuthError() }
-            Tab("Crear cuenta", register, Modifier.weight(1f)) { register = true; vm.clearAuthError() }
+            Tab("Iniciar sesión", !register, Modifier.weight(1f)) { register = false; onClear() }
+            Tab("Crear cuenta", register, Modifier.weight(1f)) { register = true; onClear() }
         }
         Gap(20)
 
         if (register) {
-            Field("Nombre", name, { name = it }, "Ej: Lucia Martinez")
+            Field("Nombre", name, { name = it }, "Ej: Lucía Martínez")
             Gap(12)
         }
         Field("Correo", email, { email = it.trim() }, "tu@correo.cl", KeyboardType.Email)
         Gap(12)
-        Text("Contrasena", style = MaterialTheme.typography.labelSmall, color = V.Muted)
+        Text("Contraseña", style = MaterialTheme.typography.labelSmall, color = V.Muted)
         Gap(6)
         OutlinedTextField(
             value = pass, onValueChange = { pass = it }, singleLine = true,
-            placeholder = { Text("Minimo 6 caracteres") },
+            placeholder = { Text("Mínimo 6 caracteres") },
             visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             trailingIcon = {
@@ -85,7 +93,7 @@ fun LoginScreen(vm: AppViewModel) {
         if (error != null) {
             Gap(14)
             VCard(color = V.RedBg, border = null) {
-                Text(error!!, style = MaterialTheme.typography.bodyMedium, color = V.Red)
+                Text(error, style = MaterialTheme.typography.bodyMedium, color = V.Red)
             }
         }
 
@@ -93,7 +101,7 @@ fun LoginScreen(vm: AppViewModel) {
         PrimaryButton(
             text = if (busy) "Verificando..." else if (register) "Crear cuenta" else "Ingresar",
             enabled = canSubmit,
-        ) { if (register) vm.signUp(name, email, pass) else vm.signIn(email, pass) }
+        ) { if (register) onSignUp(name, email, pass) else onSignIn(email, pass) }
 
         Gap(20)
         VCard(color = V.Mint, border = null) {
@@ -104,11 +112,11 @@ fun LoginScreen(vm: AppViewModel) {
             }
             Gap(6)
             Text(
-                "Tu contrasena se valida en Firebase por una conexion cifrada (TLS). La app no la guarda en el telefono, y cada cuenta solo puede ver sus propios dispositivos.",
+                "Tu contraseña se válida en Firebase por una conexión cifrada (TLS). La app no la guarda en el teléfono, y cada cuenta solo puede ver sus propios dispositivos.",
                 style = MaterialTheme.typography.bodySmall, color = V.Muted,
             )
         }
-        FootNote("Usa la misma cuenta en dos telefonos para ver y controlar el mismo ventilador desde ambos.")
+        FootNote("Usa la misma cuenta en dos teléfonos para ver y controlar el mismo ventilador desde ambos.")
     }
 }
 

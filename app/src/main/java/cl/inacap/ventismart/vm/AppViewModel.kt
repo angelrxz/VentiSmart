@@ -1,5 +1,8 @@
 package cl.inacap.ventismart.vm
 
+import cl.inacap.ventismart.data.ThingSpeak
+import cl.inacap.ventismart.data.TsPoint
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Application
@@ -95,15 +98,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun friendlyAuthError(e: Exception): String {
         val code = (e as? FirebaseAuthException)?.errorCode ?: ""
         return when {
-            code.contains("INVALID_EMAIL") -> "El correo no tiene un formato valido."
-            code.contains("WEAK_PASSWORD") -> "La contrasena debe tener al menos 6 caracteres."
-            code.contains("EMAIL_ALREADY_IN_USE") -> "Ya existe una cuenta con ese correo. Inicia sesion."
+            code.contains("INVALID_EMAIL") -> "El correo no tiene un formato válido."
+            code.contains("WEAK_PASSWORD") -> "La contraseña debe tener al menos 6 caracteres."
+            code.contains("EMAIL_ALREADY_IN_USE") -> "Ya existe una cuenta con ese correo. Inicia sesión."
             code.contains("INVALID_LOGIN_CREDENTIALS") || code.contains("WRONG_PASSWORD") ||
                 code.contains("USER_NOT_FOUND") || code.contains("INVALID_CREDENTIAL") ->
-                "Correo o contrasena incorrectos."
+                "Correo o contraseña incorrectos."
             code.contains("TOO_MANY_REQUESTS") -> "Demasiados intentos. Espera unos minutos e intenta de nuevo."
-            e.message?.contains("network", true) == true -> "Sin conexion a internet. Revisa tu red."
-            e.message?.contains("API key", true) == true -> "Firebase no esta configurado en esta compilacion (falta google-services.json)."
+            e.message?.contains("network", true) == true -> "Sin conexión a internet. Revisa tu red."
+            e.message?.contains("API key", true) == true -> "Firebase no está configurado en esta compilación (falta google-services.json)."
             else -> "No se pudo completar: ${e.message ?: "error desconocido"}"
         }
     }
@@ -174,10 +177,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 ) {
                     _localLink.value = LinkState.LOST
                     val r = lastReading
-                    log(device, EventType.LINK_LOST, "Perdida de senal",
-                        "3 s sin mensajes validos · Ultimo ${if (r?.mode == Mode.OFF) "APAGADO" else "AUTO"}")
+                    log(device, EventType.LINK_LOST, "Pérdida de señal",
+                        "3 s sin mensajes válidos · Último ${if (r?.mode == Mode.OFF) "APAGADO" else "AUTO"}")
                     publish(device, r, linkOk = false)
-                    notify(prefs.notifySignal, "Sin senal de ${device.name}", "No llegan lecturas desde hace 3 segundos.")
+                    notify(prefs.notifySignal, "Sin señal de ${device.name}", "No llegan lecturas desde hace 3 segundos.")
                 }
             }
         }
@@ -232,6 +235,50 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _localReading.value = r
         detectEvents(device, prev, r)
         publish(device, r, linkOk = true)
+        uploadToThingSpeak(r)
+    }
+
+    // ================= ThingSpeak =================
+    /** Estado del envio a ThingSpeak que muestra la pantalla "Nube". */
+    data class TsStatus(val lastOkAt: Long = 0L, val lastEntry: Long = 0L, val sent: Int = 0, val error: String? = null)
+
+    private val _tsStatus = MutableStateFlow(TsStatus())
+    val tsStatus = _tsStatus.asStateFlow()
+    private var tsLastTry = 0L
+
+    /** El telefono puente sube una lectura cada 16 s (limite de la cuenta gratuita). */
+    private fun uploadToThingSpeak(r: Reading) {
+        val t = System.currentTimeMillis()
+        if (t - tsLastTry < ThingSpeak.MIN_INTERVAL_MS) return
+        tsLastTry = t
+        viewModelScope.launch {
+            val entry = runCatching { ThingSpeak.upload(r) }.getOrElse { -1L }
+            _tsStatus.value = when {
+                entry > 0 -> TsStatus(System.currentTimeMillis(), entry, _tsStatus.value.sent + 1, null)
+                entry == 0L -> _tsStatus.value.copy(error = "ThingSpeak rechazó el envío (límite de 15 s).")
+                else -> _tsStatus.value.copy(error = "Sin conexión con ThingSpeak.")
+            }
+            if (entry > 0) refreshThingSpeak()
+        }
+    }
+
+    private val _tsFeed = MutableStateFlow<List<TsPoint>>(emptyList())
+    val tsFeed = _tsFeed.asStateFlow()
+    private val _tsLoading = MutableStateFlow(false)
+    val tsLoading = _tsLoading.asStateFlow()
+    private val _tsReadError = MutableStateFlow<String?>(null)
+    val tsReadError = _tsReadError.asStateFlow()
+
+    /** Cualquier telefono de la cuenta lee el historial del canal. */
+    fun refreshThingSpeak() {
+        if (_tsLoading.value) return
+        viewModelScope.launch {
+            _tsLoading.value = true
+            runCatching { ThingSpeak.fetch(40) }
+                .onSuccess { _tsFeed.value = it; _tsReadError.value = null }
+                .onFailure { _tsReadError.value = "No se pudo leer el canal. Revisa la conexión a internet." }
+            _tsLoading.value = false
+        }
     }
 
     /** Registra en el historial los cambios de estado, como en la pantalla de alertas. */
@@ -239,19 +286,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (r.alarm && p?.alarm != true) {
             log(device, EventType.OVERHEAT, "Sobrecalentamiento", "${fmt(r.temp)} °C · ${r.power} % · LED rojo y buzzer")
             notify(prefs.notifyOverheat, "Sobrecalentamiento en ${device.name}",
-                "${fmt(r.temp)} °C. El ventilador esta al maximo y la alarma activa.")
+                "${fmt(r.temp)} °C. El ventilador está al máximo y la alarma activa.")
         }
         if (p != null && r.mode == Mode.OFF && p.mode != Mode.OFF) {
             log(device, EventType.MANUAL_OFF, "Apagado manual", "M=O confirmado · ${fmt(r.temp)} °C · 0 %")
         }
         if (p != null && r.mode == Mode.AUTO && p.mode == Mode.OFF) {
-            log(device, EventType.AUTO_ON, "Automatico reactivado", "M=A confirmado · ${fmt(r.temp)} °C")
+            log(device, EventType.AUTO_ON, "Automático reactivado", "M=A confirmado · ${fmt(r.temp)} °C")
         }
         if (r.mode == Mode.AUTO && !r.alarm && r.power > 0 && (p == null || p.power == 0 || p.alarm)) {
-            log(device, EventType.VENTILATING, "Automatico · ventilando", "${fmt(r.temp)} °C · potencia aproximada de ${r.power} %")
+            log(device, EventType.VENTILATING, "Automático · ventilando", "${fmt(r.temp)} °C · potencia aproximada de ${r.power} %")
         }
         if (p != null && r.mode == Mode.AUTO && r.power == 0 && p.power > 0 && p.mode == Mode.AUTO) {
-            log(device, EventType.AUTO_OFF_COLD, "Apagado automatico", "${fmt(r.temp)} °C · 0 % · por debajo de 24 °C")
+            log(device, EventType.AUTO_OFF_COLD, "Apagado automático", "${fmt(r.temp)} °C · 0 % · por debajo de 24 °C")
         }
     }
 
@@ -444,6 +491,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         const val SIM_ADDRESS = "SIM:00:00:00:7A:2C"
         const val SIM_NAME = "VentiSmart_Dormitorio (simulado)"
         private const val CHANNEL = "ventismart_alertas"
-        fun fmt(t: Float) = if (t % 1f == 0f) t.toInt().toString() else "%.1f".format(t)
+        fun fmt(t: Float) = String.format(java.util.Locale.US, "%.1f", t)
     }
 }
